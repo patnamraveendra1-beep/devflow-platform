@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "patnamraveendra/devflow-backend"
-        IMAGE_TAG = "v1"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -20,6 +20,7 @@ pipeline {
                 sh '''
                 cd backend
                 docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
                 '''
             }
         }
@@ -42,6 +43,7 @@ pipeline {
             steps {
                 sh '''
                 docker push $IMAGE_NAME:$IMAGE_TAG
+                docker push $IMAGE_NAME:latest
                 '''
             }
         }
@@ -49,12 +51,22 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
+                docker pull $IMAGE_NAME:latest
+
                 docker rm -f devflow-backend || true
 
                 docker run -d \
                   --name devflow-backend \
                   -p 8000:8000 \
-                  $IMAGE_NAME:$IMAGE_TAG
+                  $IMAGE_NAME:latest
+                '''
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                sh '''
+                docker image prune -f
                 '''
             }
         }
