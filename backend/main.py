@@ -4,7 +4,7 @@ app = FastAPI()
 
 @app.get("/")
 def home():
-    return {"message": "Welcome to DevFlow"}
+    return {"message": "Welcome to DevFlow CI/CD"}
 
 @app.get("/health")
 def health():
