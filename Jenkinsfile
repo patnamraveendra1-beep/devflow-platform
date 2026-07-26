@@ -62,34 +62,12 @@ pipeline {
             }
         }
 
-        stage('Deploy Backend') {
+        stage('Deploy') {
             steps {
                 sh '''
-                docker pull $BACKEND_IMAGE:latest
-
-                docker rm -f devflow-backend || true
-
-                docker run -d \
-                  --name devflow-backend \
-                  -p 8000:8000 \
-                  --restart unless-stopped \
-                  $BACKEND_IMAGE:latest
-                '''
-            }
-        }
-
-        stage('Deploy Frontend') {
-            steps {
-                sh '''
-                docker pull $FRONTEND_IMAGE:latest
-
-                docker rm -f devflow-frontend || true
-
-                docker run -d \
-                  --name devflow-frontend \
-                  -p 3000:80 \
-                  --restart unless-stopped \
-                  $FRONTEND_IMAGE:latest
+                docker compose down || true
+                docker compose pull
+                docker compose up -d
                 '''
             }
         }
@@ -113,7 +91,10 @@ pipeline {
         }
 
         always {
-            sh 'docker ps'
+            sh '''
+            docker ps
+            docker compose ps || true
+            '''
         }
     }
 }
