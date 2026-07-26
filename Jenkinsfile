@@ -125,3 +125,5 @@ pipeline {
         }
     }
 }
+exit
+
