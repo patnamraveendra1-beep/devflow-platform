@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -13,6 +14,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
+                    credentialsId: 'github-creds',
                     url: 'https://github.com/patnamraveendra1-beep/devflow-platform.git'
             }
         }
@@ -66,15 +68,9 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                export KUBECONFIG=$KUBECONFIG
+                export KUBECONFIG=/home/ubuntu/.kube/config
 
-                kubectl apply -f kubernetes/namespace.yaml
-
-                kubectl apply -f kubernetes/backend-deployment.yaml
-                kubectl apply -f kubernetes/backend-service.yaml
-
-                kubectl apply -f kubernetes/frontend-deployment.yaml
-                kubectl apply -f kubernetes/frontend-service.yaml
+                kubectl apply -f kubernetes/
 
                 kubectl rollout restart deployment/devflow-backend -n devflow
                 kubectl rollout restart deployment/devflow-frontend -n devflow
@@ -88,14 +84,18 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                export KUBECONFIG=$KUBECONFIG
+                export KUBECONFIG=/home/ubuntu/.kube/config
 
+                echo "===== Nodes ====="
                 kubectl get nodes
 
+                echo "===== Pods ====="
                 kubectl get pods -n devflow
 
+                echo "===== Services ====="
                 kubectl get svc -n devflow
 
+                echo "===== Deployments ====="
                 kubectl get deployments -n devflow
                 '''
             }
@@ -103,21 +103,18 @@ pipeline {
 
         stage('Cleanup') {
             steps {
-                sh '''
-                docker image prune -f
-                '''
+                sh 'docker image prune -f'
             }
         }
     }
 
     post {
-
         success {
-            echo '✅ CI/CD Pipeline Completed Successfully!'
+            echo '✅ Kubernetes Deployment Successful!'
         }
 
         failure {
-            echo '❌ CI/CD Pipeline Failed!'
+            echo '❌ Kubernetes Deployment Failed!'
         }
 
         always {
