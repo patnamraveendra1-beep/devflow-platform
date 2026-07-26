@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "patnamraveendra/devflow-backend"
+        BACKEND_IMAGE = "patnamraveendra/devflow-backend"
+        FRONTEND_IMAGE = "patnamraveendra/devflow-frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
@@ -15,12 +16,22 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Backend Image') {
             steps {
                 sh '''
                 cd backend
-                docker build -t $IMAGE_NAME:$IMAGE_TAG .
-                docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
+                docker build -t $BACKEND_IMAGE:$IMAGE_TAG .
+                docker tag $BACKEND_IMAGE:$IMAGE_TAG $BACKEND_IMAGE:latest
+                '''
+            }
+        }
+
+        stage('Build Frontend Image') {
+            steps {
+                sh '''
+                cd frontend
+                docker build -t $FRONTEND_IMAGE:$IMAGE_TAG .
+                docker tag $FRONTEND_IMAGE:$IMAGE_TAG $FRONTEND_IMAGE:latest
                 '''
             }
         }
@@ -39,26 +50,46 @@ pipeline {
             }
         }
 
-        stage('Push Image') {
+        stage('Push Images') {
             steps {
                 sh '''
-                docker push $IMAGE_NAME:$IMAGE_TAG
-                docker push $IMAGE_NAME:latest
+                docker push $BACKEND_IMAGE:$IMAGE_TAG
+                docker push $BACKEND_IMAGE:latest
+
+                docker push $FRONTEND_IMAGE:$IMAGE_TAG
+                docker push $FRONTEND_IMAGE:latest
                 '''
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy Backend') {
             steps {
                 sh '''
-                docker pull $IMAGE_NAME:latest
+                docker pull $BACKEND_IMAGE:latest
 
                 docker rm -f devflow-backend || true
 
                 docker run -d \
                   --name devflow-backend \
                   -p 8000:8000 \
-                  $IMAGE_NAME:latest
+                  --restart unless-stopped \
+                  $BACKEND_IMAGE:latest
+                '''
+            }
+        }
+
+        stage('Deploy Frontend') {
+            steps {
+                sh '''
+                docker pull $FRONTEND_IMAGE:latest
+
+                docker rm -f devflow-frontend || true
+
+                docker run -d \
+                  --name devflow-frontend \
+                  -p 3000:80 \
+                  --restart unless-stopped \
+                  $FRONTEND_IMAGE:latest
                 '''
             }
         }
@@ -69,6 +100,20 @@ pipeline {
                 docker image prune -f
                 '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment Successful!"
+        }
+
+        failure {
+            echo "❌ Deployment Failed!"
+        }
+
+        always {
+            sh 'docker ps'
         }
     }
 }
