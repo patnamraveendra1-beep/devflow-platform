@@ -5,6 +5,7 @@ pipeline {
         BACKEND_IMAGE = "patnamraveendra/devflow-backend"
         FRONTEND_IMAGE = "patnamraveendra/devflow-frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
+        KUBECONFIG = "/home/ubuntu/.kube/config"
     }
 
     stages {
@@ -50,7 +51,7 @@ pipeline {
             }
         }
 
-        stage('Push Images') {
+        stage('Push Docker Images') {
             steps {
                 sh '''
                 docker push $BACKEND_IMAGE:$IMAGE_TAG
@@ -62,12 +63,40 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                docker compose down || true
-                docker compose pull
-                docker compose up -d
+                export KUBECONFIG=$KUBECONFIG
+
+                kubectl apply -f kubernetes/namespace.yaml
+
+                kubectl apply -f kubernetes/backend-deployment.yaml
+                kubectl apply -f kubernetes/backend-service.yaml
+
+                kubectl apply -f kubernetes/frontend-deployment.yaml
+                kubectl apply -f kubernetes/frontend-service.yaml
+
+                kubectl rollout restart deployment/devflow-backend -n devflow
+                kubectl rollout restart deployment/devflow-frontend -n devflow
+
+                kubectl rollout status deployment/devflow-backend -n devflow
+                kubectl rollout status deployment/devflow-frontend -n devflow
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                export KUBECONFIG=$KUBECONFIG
+
+                kubectl get nodes
+
+                kubectl get pods -n devflow
+
+                kubectl get svc -n devflow
+
+                kubectl get deployments -n devflow
                 '''
             }
         }
@@ -82,18 +111,19 @@ pipeline {
     }
 
     post {
+
         success {
-            echo "✅ Deployment Successful!"
+            echo '✅ CI/CD Pipeline Completed Successfully!'
         }
 
         failure {
-            echo "❌ Deployment Failed!"
+            echo '❌ CI/CD Pipeline Failed!'
         }
 
         always {
             sh '''
             docker ps
-            docker compose ps || true
+            docker images | head
             '''
         }
     }
