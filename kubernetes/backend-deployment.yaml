@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: devflow-backend
+  namespace: devflow
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: devflow-backend
+
+  template:
+    metadata:
+      labels:
+        app: devflow-backend
+
+    spec:
+      containers:
+      - name: backend
+        image: patnamraveendra/devflow-backend:latest
+
+        ports:
+        - containerPort: 8000
+
+        imagePullPolicy: Always
