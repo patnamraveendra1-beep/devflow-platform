@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  backend:
+    image: patnamraveendra/devflow-backend:latest
+    container_name: devflow-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: patnamraveendra/devflow-frontend:latest
+    container_name: devflow-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
