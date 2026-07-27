@@ -6,7 +6,7 @@ pipeline {
         FRONTEND_IMAGE = 'patnamraveendra/devflow-frontend'
         IMAGE_TAG = "${BUILD_NUMBER}"
 
-        // Jenkins user kubeconfig
+        // Jenkins system user paths
         KUBECONFIG = '/var/lib/jenkins/.kube/config'
         KUBECTL = '/snap/bin/kubectl'
     }
@@ -23,21 +23,23 @@ pipeline {
 
         stage('Build Backend Image') {
             steps {
-                sh '''
-                    cd backend
-                    docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .
-                    docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} ${BACKEND_IMAGE}:latest
-                '''
+                dir('backend') {
+                    sh """
+                        docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .
+                        docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} ${BACKEND_IMAGE}:latest
+                    """
+                }
             }
         }
 
         stage('Build Frontend Image') {
             steps {
-                sh '''
-                    cd frontend
-                    docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .
-                    docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} ${FRONTEND_IMAGE}:latest
-                '''
+                dir('frontend') {
+                    sh """
+                        docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .
+                        docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} ${FRONTEND_IMAGE}:latest
+                    """
+                }
             }
         }
 
@@ -59,19 +61,19 @@ pipeline {
 
         stage('Push Docker Images') {
             steps {
-                sh '''
+                sh """
                     docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
                     docker push ${BACKEND_IMAGE}:latest
 
                     docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
                     docker push ${FRONTEND_IMAGE}:latest
-                '''
+                """
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
+                sh """
                     export KUBECONFIG=${KUBECONFIG}
 
                     ${KUBECTL} version --client
@@ -83,13 +85,13 @@ pipeline {
 
                     ${KUBECTL} rollout status deployment/devflow-backend -n devflow
                     ${KUBECTL} rollout status deployment/devflow-frontend -n devflow
-                '''
+                """
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh '''
+                sh """
                     export KUBECONFIG=${KUBECONFIG}
 
                     echo "===== Nodes ====="
@@ -103,7 +105,7 @@ pipeline {
 
                     echo "===== Deployments ====="
                     ${KUBECTL} get deployments -n devflow
-                '''
+                """
             }
         }
 
@@ -115,6 +117,7 @@ pipeline {
     }
 
     post {
+
         success {
             echo '✅ Kubernetes Deployment Successful!'
         }
@@ -131,4 +134,3 @@ pipeline {
         }
     }
 }
-
