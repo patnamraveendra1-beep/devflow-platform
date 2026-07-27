@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -7,6 +6,7 @@ pipeline {
         FRONTEND_IMAGE = "patnamraveendra/devflow-frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
         KUBECONFIG = "/home/ubuntu/.kube/config"
+        KUBECTL = "/snap/bin/kubectl"
     }
 
     stages {
@@ -68,15 +68,17 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                export KUBECONFIG=/home/ubuntu/.kube/config
+                export KUBECONFIG=$KUBECONFIG
 
-                kubectl apply -f kubernetes/
+                $KUBECTL version --client
 
-                kubectl rollout restart deployment/devflow-backend -n devflow
-                kubectl rollout restart deployment/devflow-frontend -n devflow
+                $KUBECTL apply -f kubernetes/
 
-                kubectl rollout status deployment/devflow-backend -n devflow
-                kubectl rollout status deployment/devflow-frontend -n devflow
+                $KUBECTL rollout restart deployment/devflow-backend -n devflow
+                $KUBECTL rollout restart deployment/devflow-frontend -n devflow
+
+                $KUBECTL rollout status deployment/devflow-backend -n devflow
+                $KUBECTL rollout status deployment/devflow-frontend -n devflow
                 '''
             }
         }
@@ -84,19 +86,19 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                export KUBECONFIG=/home/ubuntu/.kube/config
+                export KUBECONFIG=$KUBECONFIG
 
                 echo "===== Nodes ====="
-                kubectl get nodes
+                $KUBECTL get nodes
 
                 echo "===== Pods ====="
-                kubectl get pods -n devflow
+                $KUBECTL get pods -n devflow
 
                 echo "===== Services ====="
-                kubectl get svc -n devflow
+                $KUBECTL get svc -n devflow
 
                 echo "===== Deployments ====="
-                kubectl get deployments -n devflow
+                $KUBECTL get deployments -n devflow
                 '''
             }
         }
@@ -125,5 +127,3 @@ pipeline {
         }
     }
 }
-exit
-
