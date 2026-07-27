@@ -2,12 +2,11 @@ pipeline {
     agent any
 
     environment {
+        DOCKER_USERNAME = "patnamraveendra"
         BACKEND_IMAGE = "patnamraveendra/devflow-backend"
         FRONTEND_IMAGE = "patnamraveendra/devflow-frontend"
-        IMAGE_TAG = "${BUILD_NUMBER}"
-
-        KUBECTL = "/usr/local/bin/kubectl"
         KUBECONFIG = "/var/lib/jenkins/.kube/config"
+        PATH = "/usr/local/bin:/usr/bin:/bin"
     }
 
     stages {
@@ -24,8 +23,8 @@ pipeline {
             steps {
                 dir('backend') {
                     sh """
-                        docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .
-                        docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} ${BACKEND_IMAGE}:latest
+                    docker build -t ${BACKEND_IMAGE}:${BUILD_NUMBER} .
+                    docker tag ${BACKEND_IMAGE}:${BUILD_NUMBER} ${BACKEND_IMAGE}:latest
                     """
                 }
             }
@@ -35,8 +34,8 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh """
-                        docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .
-                        docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} ${FRONTEND_IMAGE}:latest
+                    docker build -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} .
+                    docker tag ${FRONTEND_IMAGE}:${BUILD_NUMBER} ${FRONTEND_IMAGE}:latest
                     """
                 }
             }
@@ -52,7 +51,7 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     '''
                 }
             }
@@ -61,74 +60,97 @@ pipeline {
         stage('Push Docker Images') {
             steps {
                 sh """
-                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
-                    docker push ${BACKEND_IMAGE}:latest
+                docker push ${BACKEND_IMAGE}:${BUILD_NUMBER}
+                docker push ${BACKEND_IMAGE}:latest
 
-                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
-                    docker push ${FRONTEND_IMAGE}:latest
+                docker push ${FRONTEND_IMAGE}:${BUILD_NUMBER}
+                docker push ${FRONTEND_IMAGE}:latest
                 """
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh """
-                    export PATH=/usr/local/bin:/usr/bin:/bin
-                    export KUBECONFIG=${KUBECONFIG}
+                sh '''
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
+                export PATH=/usr/local/bin:/usr/bin:/bin
 
-                    echo "Current Context"
-                    kubectl config current-context
+                echo "=================================="
+                echo "Waiting for Kubernetes API"
+                echo "=================================="
 
-                    echo "Cluster"
-                    kubectl cluster-info
+                for i in $(seq 1 30)
+                do
+                    if kubectl cluster-info >/dev/null 2>&1
+                    then
+                        echo "Kubernetes API Ready"
+                        break
+                    fi
 
-                    echo "Nodes"
-                    kubectl get nodes
+                    echo "Attempt $i/30..."
+                    sleep 10
+                done
 
-                    echo "Applying Kubernetes manifests"
-                    kubectl apply -f kubernetes/
+                kubectl cluster-info
 
-                    echo "Updating Backend Image"
-                    kubectl set image deployment/devflow-backend \
-                        backend=${BACKEND_IMAGE}:${IMAGE_TAG} \
-                        -n devflow
+                echo "=================================="
+                echo "Applying Kubernetes manifests"
+                echo "=================================="
 
-                    echo "Updating Frontend Image"
-                    kubectl set image deployment/devflow-frontend \
-                        frontend=${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                        -n devflow
+                kubectl apply -f kubernetes/
 
-                    echo "Waiting 20 seconds..."
-                    sleep 20
+                echo "=================================="
+                echo "Updating Backend Image"
+                echo "=================================="
 
-                    echo "Backend Rollout"
-                    kubectl rollout status deployment/devflow-backend \
-                        -n devflow \
-                        --timeout=300s
+                kubectl set image deployment/devflow-backend \
+                backend=${BACKEND_IMAGE}:${BUILD_NUMBER} \
+                -n devflow
 
-                    echo "Frontend Rollout"
-                    kubectl rollout status deployment/devflow-frontend \
-                        -n devflow \
-                        --timeout=300s
-                """
+                echo "=================================="
+                echo "Updating Frontend Image"
+                echo "=================================="
+
+                kubectl set image deployment/devflow-frontend \
+                frontend=${FRONTEND_IMAGE}:${BUILD_NUMBER} \
+                -n devflow
+
+                echo "=================================="
+                echo "Backend Rollout"
+                echo "=================================="
+
+                kubectl rollout status deployment/devflow-backend \
+                -n devflow \
+                --timeout=600s
+
+                echo "=================================="
+                echo "Frontend Rollout"
+                echo "=================================="
+
+                kubectl rollout status deployment/devflow-frontend \
+                -n devflow \
+                --timeout=600s
+                '''
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh """
-                    export KUBECONFIG=${KUBECONFIG}
+                sh '''
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                    kubectl get deployments -n devflow
-                    kubectl get pods -n devflow -o wide
-                    kubectl get svc -n devflow
-                """
+                kubectl get deployments -n devflow
+                kubectl get pods -n devflow
+                kubectl get svc -n devflow
+                '''
             }
         }
 
         stage('Cleanup') {
             steps {
-                sh "docker image prune -f"
+                sh '''
+                docker image prune -f
+                '''
             }
         }
     }
@@ -136,37 +158,39 @@ pipeline {
     post {
 
         success {
+            echo "=================================="
             echo "Deployment Successful"
+            echo "=================================="
+
+            sh '''
+            export KUBECONFIG=/var/lib/jenkins/.kube/config
+
+            kubectl get pods -n devflow
+            kubectl get svc -n devflow
+            '''
         }
 
         failure {
+            echo "=================================="
             echo "Deployment Failed"
+            echo "=================================="
 
-            sh """
-                export KUBECONFIG=${KUBECONFIG}
+            sh '''
+            export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                kubectl get deployments -n devflow || true
-                kubectl get pods -n devflow -o wide || true
-
-                kubectl describe deployment devflow-backend -n devflow || true
-                kubectl describe deployment devflow-frontend -n devflow || true
-
-                kubectl get events -n devflow --sort-by=.metadata.creationTimestamp | tail -30 || true
-            """
+            kubectl get nodes || true
+            kubectl get deployments -n devflow || true
+            kubectl get pods -n devflow -o wide || true
+            kubectl describe deployment devflow-backend -n devflow || true
+            kubectl describe deployment devflow-frontend -n devflow || true
+            kubectl get events -n devflow --sort-by=.metadata.creationTimestamp | tail -30 || true
+            '''
         }
 
         always {
-            sh """
-                docker ps
-                docker images | head
-
-                export KUBECONFIG=${KUBECONFIG}
-
-                kubectl get nodes || true
-                kubectl get deployments -n devflow || true
-                kubectl get pods -n devflow || true
-                kubectl get svc -n devflow || true
-            """
+            sh '''
+            docker logout || true
+            '''
         }
     }
 }
