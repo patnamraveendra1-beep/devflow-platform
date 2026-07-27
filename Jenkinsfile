@@ -6,6 +6,7 @@ pipeline {
         FRONTEND_IMAGE = "patnamraveendra/devflow-frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
         KUBECONFIG = "/var/lib/jenkins/.kube/config"
+        KUBECTL = "/usr/local/bin/kubectl"
     }
 
     stages {
@@ -13,17 +14,17 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/patnamraveendra1-beep/devflow-platform.git'
+                url: 'https://github.com/patnamraveendra1-beep/devflow-platform.git'
             }
         }
 
         stage('Build Backend Image') {
             steps {
                 dir('backend') {
-                    sh """
-                        docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .
-                        docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} ${BACKEND_IMAGE}:latest
-                    """
+                    sh '''
+                    docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .
+                    docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} ${BACKEND_IMAGE}:latest
+                    '''
                 }
             }
         }
@@ -31,25 +32,23 @@ pipeline {
         stage('Build Frontend Image') {
             steps {
                 dir('frontend') {
-                    sh """
-                        docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .
-                        docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} ${FRONTEND_IMAGE}:latest
-                    """
+                    sh '''
+                    docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .
+                    docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} ${FRONTEND_IMAGE}:latest
+                    '''
                 }
             }
         }
 
         stage('Docker Login') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     '''
                 }
             }
@@ -57,68 +56,35 @@ pipeline {
 
         stage('Push Docker Images') {
             steps {
-                sh """
-                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
-                    docker push ${BACKEND_IMAGE}:latest
-
-                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
-                    docker push ${FRONTEND_IMAGE}:latest
-                """
+                sh '''
+                docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                docker push ${BACKEND_IMAGE}:latest
+                docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                docker push ${FRONTEND_IMAGE}:latest
+                '''
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    set -eux
+                export PATH=/usr/local/bin:/usr/bin:/bin
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                    export KUBECONFIG=/var/lib/jenkins/.kube/config
-                    export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+                which kubectl
+                kubectl version --client
+                kubectl get nodes
 
-                    echo "========== DEBUG =========="
-                    hostname
-                    whoami
-                    pwd
+                kubectl apply -f kubernetes/
 
-                    echo "PATH=$PATH"
+                kubectl set image deployment/devflow-backend \
+                  devflow-backend=${BACKEND_IMAGE}:${IMAGE_TAG} -n devflow
 
-                    echo "Checking kubectl..."
-                    which kubectl || true
-                    find /usr -name kubectl 2>/dev/null || true
+                kubectl set image deployment/devflow-frontend \
+                  devflow-frontend=${FRONTEND_IMAGE}:${IMAGE_TAG} -n devflow
 
-                    if [ -x /usr/local/bin/kubectl ]; then
-                        KUBECTL=/usr/local/bin/kubectl
-                    elif [ -x /usr/bin/kubectl ]; then
-                        KUBECTL=/usr/bin/kubectl
-                    else
-                        echo "ERROR: kubectl not found"
-                        exit 1
-                    fi
-
-                    echo "Using: $KUBECTL"
-
-                    $KUBECTL version --client
-                    $KUBECTL get nodes
-
-                    echo "Applying Kubernetes manifests..."
-                    $KUBECTL apply -f kubernetes/
-
-                    echo "Updating backend image..."
-                    $KUBECTL set image deployment/devflow-backend \
-                        devflow-backend=patnamraveendra/devflow-backend:${BUILD_NUMBER} \
-                        -n devflow
-
-                    echo "Updating frontend image..."
-                    $KUBECTL set image deployment/devflow-frontend \
-                        devflow-frontend=patnamraveendra/devflow-frontend:${BUILD_NUMBER} \
-                        -n devflow
-
-                    echo "Waiting for rollout..."
-                    $KUBECTL rollout status deployment/devflow-backend \
-                        -n devflow --timeout=180s
-
-                    $KUBECTL rollout status deployment/devflow-frontend \
-                        -n devflow --timeout=180s
+                kubectl rollout status deployment/devflow-backend -n devflow --timeout=180s
+                kubectl rollout status deployment/devflow-frontend -n devflow --timeout=180s
                 '''
             }
         }
@@ -126,27 +92,12 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                    set -eux
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                    export KUBECONFIG=/var/lib/jenkins/.kube/config
-
-                    if [ -x /usr/local/bin/kubectl ]; then
-                        KUBECTL=/usr/local/bin/kubectl
-                    else
-                        KUBECTL=$(which kubectl)
-                    fi
-
-                    echo "========== NODES =========="
-                    $KUBECTL get nodes
-
-                    echo "========== PODS =========="
-                    $KUBECTL get pods -n devflow
-
-                    echo "========== SERVICES =========="
-                    $KUBECTL get svc -n devflow
-
-                    echo "========== DEPLOYMENTS =========="
-                    $KUBECTL get deployments -n devflow
+                kubectl get nodes
+                kubectl get pods -n devflow
+                kubectl get svc -n devflow
+                kubectl get deployments -n devflow
                 '''
             }
         }
@@ -159,30 +110,22 @@ pipeline {
     }
 
     post {
-
         success {
-            echo '✅ Kubernetes Deployment Successful!'
+            echo 'Deployment Successful'
         }
 
         failure {
-            echo '❌ Kubernetes Deployment Failed!'
+            echo 'Deployment Failed'
         }
 
         always {
             sh '''
-                echo "========== RUNNING CONTAINERS =========="
-                docker ps
+            docker ps
+            docker images | head
 
-                echo "========== DOCKER IMAGES =========="
-                docker images | head -20
+            export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                export KUBECONFIG=/var/lib/jenkins/.kube/config
-
-                if [ -x /usr/local/bin/kubectl ]; then
-                    /usr/local/bin/kubectl get pods -A || true
-                else
-                    which kubectl || true
-                fi
+            kubectl get pods -A || true
             '''
         }
     }
