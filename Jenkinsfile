@@ -2,12 +2,10 @@ pipeline {
     agent any
 
     environment {
+        DOCKER_USER = "patnamraveendra"
         BACKEND_IMAGE = "patnamraveendra/devflow-backend"
         FRONTEND_IMAGE = "patnamraveendra/devflow-frontend"
-        IMAGE_TAG = "${BUILD_NUMBER}"
-
-        KUBECONFIG = "/var/lib/jenkins/.kube/config"
-        KUBECTL = "/usr/local/bin/kubectl"
+        BUILD_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -23,8 +21,8 @@ pipeline {
             steps {
                 dir('backend') {
                     sh """
-                        docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .
-                        docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} ${BACKEND_IMAGE}:latest
+                    docker build -t ${BACKEND_IMAGE}:${BUILD_TAG} .
+                    docker tag ${BACKEND_IMAGE}:${BUILD_TAG} ${BACKEND_IMAGE}:latest
                     """
                 }
             }
@@ -34,8 +32,8 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh """
-                        docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .
-                        docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} ${FRONTEND_IMAGE}:latest
+                    docker build -t ${FRONTEND_IMAGE}:${BUILD_TAG} .
+                    docker tag ${FRONTEND_IMAGE}:${BUILD_TAG} ${FRONTEND_IMAGE}:latest
                     """
                 }
             }
@@ -51,7 +49,7 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     '''
                 }
             }
@@ -60,58 +58,56 @@ pipeline {
         stage('Push Docker Images') {
             steps {
                 sh """
-                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
-                    docker push ${BACKEND_IMAGE}:latest
+                docker push ${BACKEND_IMAGE}:${BUILD_TAG}
+                docker push ${BACKEND_IMAGE}:latest
 
-                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
-                    docker push ${FRONTEND_IMAGE}:latest
+                docker push ${FRONTEND_IMAGE}:${BUILD_TAG}
+                docker push ${FRONTEND_IMAGE}:latest
                 """
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh """
-                    export KUBECONFIG=${KUBECONFIG}
+                sh '''
+                export PATH=/usr/local/bin:/usr/bin:/bin:$PATH
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                    ${KUBECTL} version --client
+                echo "PATH=$PATH"
 
-                    ${KUBECTL} get nodes
+                which kubectl
 
-                    ${KUBECTL} apply -f kubernetes/
+                kubectl version --client
 
-                    ${KUBECTL} rollout restart deployment/devflow-backend -n devflow
-                    ${KUBECTL} rollout restart deployment/devflow-frontend -n devflow
+                kubectl get nodes
 
-                    ${KUBECTL} rollout status deployment/devflow-backend -n devflow
-                    ${KUBECTL} rollout status deployment/devflow-frontend -n devflow
-                """
+                kubectl apply -f k8s/
+
+                kubectl rollout restart deployment/devflow-backend
+                kubectl rollout restart deployment/devflow-frontend
+
+                kubectl rollout status deployment/devflow-backend --timeout=180s
+                kubectl rollout status deployment/devflow-frontend --timeout=180s
+                '''
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh """
-                    export KUBECONFIG=${KUBECONFIG}
+                sh '''
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                    echo "========== NODES =========="
-                    ${KUBECTL} get nodes
-
-                    echo "========== PODS =========="
-                    ${KUBECTL} get pods -n devflow
-
-                    echo "========== SERVICES =========="
-                    ${KUBECTL} get svc -n devflow
-
-                    echo "========== DEPLOYMENTS =========="
-                    ${KUBECTL} get deployments -n devflow
-                """
+                kubectl get pods
+                kubectl get svc
+                '''
             }
         }
 
         stage('Cleanup') {
             steps {
-                sh 'docker image prune -f'
+                sh '''
+                docker image prune -f
+                '''
             }
         }
     }
@@ -119,20 +115,22 @@ pipeline {
     post {
 
         success {
-            echo '✅ Kubernetes Deployment Successful!'
+            echo "✅ Pipeline completed successfully."
         }
 
         failure {
-            echo '❌ Kubernetes Deployment Failed!'
-        }
+            echo "❌ Kubernetes Deployment Failed!"
 
-        always {
             sh '''
-                echo "========== RUNNING CONTAINERS =========="
-                docker ps
+            echo "========== RUNNING CONTAINERS =========="
+            docker ps
 
-                echo "========== DOCKER IMAGES =========="
-                docker images | head
+            echo "========== DOCKER IMAGES =========="
+            docker images | head
+
+            echo "========== KUBERNETES PODS =========="
+            export KUBECONFIG=/var/lib/jenkins/.kube/config
+            kubectl get pods -A || true
             '''
         }
     }
