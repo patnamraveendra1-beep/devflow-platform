@@ -17,6 +17,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
+                    credentialsId: 'github-creds',
                     url: 'https://github.com/patnamraveendra1-beep/devflow-platform.git'
             }
         }
@@ -90,11 +91,11 @@ pipeline {
                     ${KUBECTL} apply -f kubernetes/
 
                     ${KUBECTL} set image deployment/devflow-backend \
-                    devflow-backend=${BACKEND_IMAGE}:${IMAGE_TAG} \
+                    backend=${BACKEND_IMAGE}:${IMAGE_TAG} \
                     -n devflow
 
                     ${KUBECTL} set image deployment/devflow-frontend \
-                    devflow-frontend=${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                    frontend=${FRONTEND_IMAGE}:${IMAGE_TAG} \
                     -n devflow
 
                     ${KUBECTL} rollout status deployment/devflow-backend \
@@ -111,12 +112,16 @@ pipeline {
                 sh """
                     export KUBECONFIG=${KUBECONFIG}
 
+                    echo "===== Nodes ====="
                     ${KUBECTL} get nodes
 
+                    echo "===== Pods ====="
                     ${KUBECTL} get pods -n devflow
 
+                    echo "===== Services ====="
                     ${KUBECTL} get svc -n devflow
 
+                    echo "===== Deployments ====="
                     ${KUBECTL} get deployments -n devflow
                 """
             }
@@ -132,15 +137,14 @@ pipeline {
     post {
 
         success {
-            echo 'Deployment Successful'
+            echo '✅ Deployment Successful'
         }
 
         failure {
-            echo 'Deployment Failed'
+            echo '❌ Deployment Failed'
         }
 
         always {
-
             sh """
                 docker ps
 
