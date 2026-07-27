@@ -8,7 +8,6 @@ pipeline {
 
         KUBECTL = "/usr/local/bin/kubectl"
         KUBECONFIG = "/var/lib/jenkins/.kube/config"
-        PATH = "/usr/local/bin:/usr/bin:/bin"
     }
 
     stages {
@@ -73,97 +72,63 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
+                sh """
                     export PATH=/usr/local/bin:/usr/bin:/bin
-                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+                    export KUBECONFIG=${KUBECONFIG}
 
-                    echo "=============================="
-                    echo " Kubernetes Information"
-                    echo "=============================="
-
+                    echo "Current Context"
                     kubectl config current-context
-                    kubectl version --client
+
+                    echo "Cluster"
                     kubectl cluster-info
+
+                    echo "Nodes"
                     kubectl get nodes
 
-                    echo "=============================="
-                    echo " Applying Manifests"
-                    echo "=============================="
-
+                    echo "Applying Kubernetes manifests"
                     kubectl apply -f kubernetes/
 
-                    echo "=============================="
-                    echo " Updating Backend Image"
-                    echo "=============================="
-
+                    echo "Updating Backend Image"
                     kubectl set image deployment/devflow-backend \
-                        backend=''' + BACKEND_IMAGE + ''':'${IMAGE_TAG} \
+                        backend=${BACKEND_IMAGE}:${IMAGE_TAG} \
                         -n devflow
 
-                    echo "=============================="
-                    echo " Updating Frontend Image"
-                    echo "=============================="
-
+                    echo "Updating Frontend Image"
                     kubectl set image deployment/devflow-frontend \
-                        frontend=''' + FRONTEND_IMAGE + ''':'${IMAGE_TAG} \
+                        frontend=${FRONTEND_IMAGE}:${IMAGE_TAG} \
                         -n devflow
 
-                    echo "Waiting for deployment..."
+                    echo "Waiting 20 seconds..."
                     sleep 20
 
-                    echo "=============================="
-                    echo " Backend Rollout"
-                    echo "=============================="
-
+                    echo "Backend Rollout"
                     kubectl rollout status deployment/devflow-backend \
                         -n devflow \
                         --timeout=300s
 
-                    echo "=============================="
-                    echo " Frontend Rollout"
-                    echo "=============================="
-
+                    echo "Frontend Rollout"
                     kubectl rollout status deployment/devflow-frontend \
                         -n devflow \
                         --timeout=300s
-                '''
+                """
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh '''
-                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+                sh """
+                    export KUBECONFIG=${KUBECONFIG}
 
-                    echo "=============================="
-                    echo " Pods"
-                    echo "=============================="
-                    kubectl get pods -n devflow -o wide
-
-                    echo "=============================="
-                    echo " Deployments"
-                    echo "=============================="
                     kubectl get deployments -n devflow
-
-                    echo "=============================="
-                    echo " Services"
-                    echo "=============================="
+                    kubectl get pods -n devflow -o wide
                     kubectl get svc -n devflow
-
-                    echo "=============================="
-                    echo " Rollout History"
-                    echo "=============================="
-                    kubectl rollout history deployment/devflow-backend -n devflow
-                    kubectl rollout history deployment/devflow-frontend -n devflow
-                '''
+                """
             }
         }
 
         stage('Cleanup') {
             steps {
-                sh '''
-                    docker image prune -f
-                '''
+                sh "docker image prune -f"
             }
         }
     }
@@ -171,70 +136,37 @@ pipeline {
     post {
 
         success {
-            echo "✅ Deployment Successful!"
+            echo "Deployment Successful"
         }
 
         failure {
-            echo "❌ Deployment Failed!"
+            echo "Deployment Failed"
 
-            sh '''
-                export KUBECONFIG=/var/lib/jenkins/.kube/config
-
-                echo "=============================="
-                echo " Deployment Status"
-                echo "=============================="
+            sh """
+                export KUBECONFIG=${KUBECONFIG}
 
                 kubectl get deployments -n devflow || true
-
-                echo "=============================="
-                echo " Pods"
-                echo "=============================="
-
                 kubectl get pods -n devflow -o wide || true
 
-                echo "=============================="
-                echo " Describe Backend"
-                echo "=============================="
-
                 kubectl describe deployment devflow-backend -n devflow || true
-
-                echo "=============================="
-                echo " Describe Frontend"
-                echo "=============================="
-
                 kubectl describe deployment devflow-frontend -n devflow || true
 
-                echo "=============================="
-                echo " Events"
-                echo "=============================="
-
                 kubectl get events -n devflow --sort-by=.metadata.creationTimestamp | tail -30 || true
-            '''
+            """
         }
 
         always {
-            sh '''
-                echo "=============================="
-                echo " Docker Containers"
-                echo "=============================="
+            sh """
                 docker ps
-
-                echo "=============================="
-                echo " Docker Images"
-                echo "=============================="
                 docker images | head
 
-                export KUBECONFIG=/var/lib/jenkins/.kube/config
-
-                echo "=============================="
-                echo " Final Kubernetes Status"
-                echo "=============================="
+                export KUBECONFIG=${KUBECONFIG}
 
                 kubectl get nodes || true
+                kubectl get deployments -n devflow || true
                 kubectl get pods -n devflow || true
                 kubectl get svc -n devflow || true
-                kubectl get deployments -n devflow || true
-            '''
+            """
         }
     }
 }
