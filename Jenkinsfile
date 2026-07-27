@@ -2,10 +2,15 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_USER = "patnamraveendra"
         BACKEND_IMAGE = "patnamraveendra/devflow-backend"
         FRONTEND_IMAGE = "patnamraveendra/devflow-frontend"
-        BUILD_TAG = "${BUILD_NUMBER}"
+        IMAGE_TAG     = "${BUILD_NUMBER}"
+
+        // Jenkins user kubeconfig
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+
+        // Fixed kubectl binary path
+        KUBECTL = "/usr/local/bin/kubectl"
     }
 
     stages {
@@ -21,8 +26,8 @@ pipeline {
             steps {
                 dir('backend') {
                     sh """
-                    docker build -t ${BACKEND_IMAGE}:${BUILD_TAG} .
-                    docker tag ${BACKEND_IMAGE}:${BUILD_TAG} ${BACKEND_IMAGE}:latest
+                        docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .
+                        docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} ${BACKEND_IMAGE}:latest
                     """
                 }
             }
@@ -32,8 +37,8 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh """
-                    docker build -t ${FRONTEND_IMAGE}:${BUILD_TAG} .
-                    docker tag ${FRONTEND_IMAGE}:${BUILD_TAG} ${FRONTEND_IMAGE}:latest
+                        docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .
+                        docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} ${FRONTEND_IMAGE}:latest
                     """
                 }
             }
@@ -41,15 +46,13 @@ pipeline {
 
         stage('Docker Login') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
                     sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     '''
                 }
             }
@@ -58,80 +61,95 @@ pipeline {
         stage('Push Docker Images') {
             steps {
                 sh """
-                docker push ${BACKEND_IMAGE}:${BUILD_TAG}
-                docker push ${BACKEND_IMAGE}:latest
+                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${BACKEND_IMAGE}:latest
 
-                docker push ${FRONTEND_IMAGE}:${BUILD_TAG}
-                docker push ${FRONTEND_IMAGE}:latest
+                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${FRONTEND_IMAGE}:latest
                 """
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
-                export PATH=/usr/local/bin:/usr/bin:/bin:$PATH
-                export KUBECONFIG=/var/lib/jenkins/.kube/config
+                sh """
+                    export PATH=/usr/local/bin:/usr/bin:/bin:$PATH
+                    export KUBECONFIG=${KUBECONFIG}
 
-                echo "PATH=$PATH"
+                    echo "===== PATH ====="
+                    echo $PATH
 
-                which kubectl
+                    echo "===== kubectl ====="
+                    ls -l ${KUBECTL}
 
-                kubectl version --client
+                    ${KUBECTL} version --client
+                    ${KUBECTL} get nodes
 
-                kubectl get nodes
+                    echo "===== Applying manifests ====="
+                    ${KUBECTL} apply -f kubernetes/
 
-                kubectl apply -f k8s/
+                    echo "===== Updating images ====="
+                    ${KUBECTL} set image deployment/devflow-backend \
+                        devflow-backend=${BACKEND_IMAGE}:${IMAGE_TAG} -n devflow
 
-                kubectl rollout restart deployment/devflow-backend
-                kubectl rollout restart deployment/devflow-frontend
+                    ${KUBECTL} set image deployment/devflow-frontend \
+                        devflow-frontend=${FRONTEND_IMAGE}:${IMAGE_TAG} -n devflow
 
-                kubectl rollout status deployment/devflow-backend --timeout=180s
-                kubectl rollout status deployment/devflow-frontend --timeout=180s
-                '''
+                    echo "===== Rollout Status ====="
+                    ${KUBECTL} rollout status deployment/devflow-backend -n devflow --timeout=180s
+                    ${KUBECTL} rollout status deployment/devflow-frontend -n devflow --timeout=180s
+                """
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh '''
-                export KUBECONFIG=/var/lib/jenkins/.kube/config
+                sh """
+                    export KUBECONFIG=${KUBECONFIG}
 
-                kubectl get pods
-                kubectl get svc
-                '''
+                    echo "===== Nodes ====="
+                    ${KUBECTL} get nodes
+
+                    echo "===== Pods ====="
+                    ${KUBECTL} get pods -n devflow
+
+                    echo "===== Services ====="
+                    ${KUBECTL} get svc -n devflow
+
+                    echo "===== Deployments ====="
+                    ${KUBECTL} get deployments -n devflow
+                """
             }
         }
 
         stage('Cleanup') {
             steps {
-                sh '''
-                docker image prune -f
-                '''
+                sh 'docker image prune -f'
             }
         }
     }
 
     post {
-
         success {
-            echo "✅ Pipeline completed successfully."
+            echo '✅ Kubernetes Deployment Successful!'
         }
 
         failure {
-            echo "❌ Kubernetes Deployment Failed!"
+            echo '❌ Kubernetes Deployment Failed!'
+        }
 
-            sh '''
-            echo "========== RUNNING CONTAINERS =========="
-            docker ps
+        always {
+            sh """
+                echo "========== RUNNING CONTAINERS =========="
+                docker ps
 
-            echo "========== DOCKER IMAGES =========="
-            docker images | head
+                echo "========== DOCKER IMAGES =========="
+                docker images | head
 
-            echo "========== KUBERNETES PODS =========="
-            export KUBECONFIG=/var/lib/jenkins/.kube/config
-            kubectl get pods -A || true
-            '''
+                echo "========== KUBERNETES PODS =========="
+                export KUBECONFIG=${KUBECONFIG}
+                ${KUBECTL} get pods -A || true
+            """
         }
     }
 }
