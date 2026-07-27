@@ -2,12 +2,15 @@ pipeline {
     agent any
 
     environment {
-        BACKEND_IMAGE = 'patnamraveendra/devflow-backend'
-        FRONTEND_IMAGE = 'patnamraveendra/devflow-frontend'
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        BACKEND_IMAGE = "patnamraveendra/devflow-backend"
+        FRONTEND_IMAGE = "patnamraveendra/devflow-frontend"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
 
-        KUBECONFIG = '/var/lib/jenkins/.kube/config'
-        KUBECTL = '/snap/bin/kubectl'
+        // Jenkins user kubeconfig
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+
+        // kubectl path
+        KUBECTL = "/snap/bin/kubectl"
     }
 
     stages {
@@ -22,21 +25,23 @@ pipeline {
 
         stage('Build Backend Image') {
             steps {
-                sh '''
+                sh """
                     cd backend
+
                     docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .
                     docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} ${BACKEND_IMAGE}:latest
-                '''
+                """
             }
         }
 
         stage('Build Frontend Image') {
             steps {
-                sh '''
+                sh """
                     cd frontend
+
                     docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .
                     docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} ${FRONTEND_IMAGE}:latest
-                '''
+                """
             }
         }
 
@@ -49,28 +54,28 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    '''
+                    sh """
+                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                    """
                 }
             }
         }
 
         stage('Push Docker Images') {
             steps {
-                sh '''
+                sh """
                     docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
                     docker push ${BACKEND_IMAGE}:latest
 
                     docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
                     docker push ${FRONTEND_IMAGE}:latest
-                '''
+                """
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
+                sh """
                     export KUBECONFIG=${KUBECONFIG}
 
                     ${KUBECTL} version --client
@@ -82,51 +87,54 @@ pipeline {
 
                     ${KUBECTL} rollout status deployment/devflow-backend -n devflow
                     ${KUBECTL} rollout status deployment/devflow-frontend -n devflow
-                '''
+                """
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh '''
+                sh """
                     export KUBECONFIG=${KUBECONFIG}
 
-                    echo "===== Nodes ====="
+                    echo "========== NODES =========="
                     ${KUBECTL} get nodes
 
-                    echo "===== Pods ====="
+                    echo "========== PODS =========="
                     ${KUBECTL} get pods -n devflow
 
-                    echo "===== Services ====="
+                    echo "========== SERVICES =========="
                     ${KUBECTL} get svc -n devflow
 
-                    echo "===== Deployments ====="
+                    echo "========== DEPLOYMENTS =========="
                     ${KUBECTL} get deployments -n devflow
-                '''
+                """
             }
         }
 
         stage('Cleanup') {
             steps {
-                sh 'docker image prune -f'
+                sh "docker image prune -f"
             }
         }
     }
 
     post {
         success {
-            echo '✅ Kubernetes Deployment Successful!'
+            echo "✅ Kubernetes Deployment Successful!"
         }
 
         failure {
-            echo '❌ Kubernetes Deployment Failed!'
+            echo "❌ Kubernetes Deployment Failed!"
         }
 
         always {
-            sh '''
+            sh """
+                echo "========== RUNNING CONTAINERS =========="
                 docker ps
+
+                echo "========== DOCKER IMAGES =========="
                 docker images | head
-            '''
+            """
         }
     }
 }
