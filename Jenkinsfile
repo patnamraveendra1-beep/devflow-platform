@@ -133,3 +133,7 @@ pipeline {
         }
     }
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 69fede7 (Fix kubectl path for Jenkins)
