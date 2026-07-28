@@ -24,316 +24,218 @@ This project demonstrates a real-world production-style DevOps workflow includin
 # 🏗 Architecture
 
 
-                     Developer
-                         |
-                         |
-                         ▼
+```text
+                         Developer
+                             |
+                             |
+                             ▼
 
-                GitHub Repository
+                    GitHub Repository
 
-                         |
-                         |
-                GitHub Webhook
+                             |
+                             |
+                    GitHub Webhook
 
-                         |
-                         ▼
+                             |
+                             ▼
 
-                 Jenkins Pipeline
+                     Jenkins Pipeline
 
-                         |
-                         |
-          -----------------------------
-          |                           |
-          ▼                           ▼
+                             |
+                             |
+              -----------------------------
+              |                           |
+              ▼                           ▼
 
-    Docker Build                CI/CD Automation
+        Docker Build                CI/CD Automation
 
-          |
-          ▼
+              |
+              ▼
 
-      Docker Hub
+          Docker Hub
 
-          |
-          ▼
+              |
+              ▼
 
-      AWS EC2 Server
+          AWS EC2 Server
 
-          |
-          ▼
+              |
+              ▼
 
-    Kubernetes Cluster
+        Kubernetes Cluster
 
-          |
-  ----------------------
-  |                    |
-  ▼                    ▼
+              |
+      ----------------------
+      |                    |
+      ▼                    ▼
 
-FastAPI Backend React Frontend
+ FastAPI Backend     React Frontend
 
-          |
-          ▼
+              |
+              ▼
 
-    Monitoring Stack
+        Monitoring Stack
 
-          |
-  ----------------------
-  |                    |
-  ▼                    ▼
+              |
+      ----------------------
+      |                    |
+      ▼                    ▼
 
-Prometheus Grafana
+ Prometheus          Grafana
 
-          |
-          ▼
+              |
+              ▼
 
-    Node Exporter Metrics
-
-
-# ⚙ Tech Stack
-
-
-## Backend
-
-- FastAPI
-- Python 3
-- Uvicorn
-
-
-## Frontend
-
-- React
-- HTML
-- CSS
-- JavaScript
-
-
-## DevOps
-
-- Jenkins
-- Docker
-- Docker Compose
-- GitHub Webhooks
-- Docker Hub
-- Kubernetes
-
-
-## Cloud
-
-- AWS EC2
-- Ubuntu Server
-
-
-## Infrastructure as Code
-
-- Terraform
-
-
-## Monitoring
-
-- Prometheus
-- Grafana
-- Node Exporter
-
-
-## Version Control
-
-- Git
-- GitHub
-
-
-
-# 📂 Project Structure
-
-
-
+        Node Exporter Metrics
+⚙ Tech Stack
+Backend
+FastAPI
+Python 3
+Uvicorn
+Frontend
+React
+HTML
+CSS
+JavaScript
+DevOps
+Jenkins
+Docker
+Docker Compose
+GitHub Webhooks
+Docker Hub
+Kubernetes
+Cloud
+AWS EC2
+Ubuntu Server
+Infrastructure as Code
+Terraform
+Monitoring
+Prometheus
+Grafana
+Node Exporter
+Version Control
+Git
+GitHub
+📂 Project Structure
 devflow-platform/
 
 │
-
 ├── backend/
-
-│ ├── Dockerfile
-
-│ ├── requirements.txt
-
-│ └── main.py
-
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── main.py
+│
 ├── frontend/
-
+│
 ├── kubernetes/
-
+│
 ├── monitoring/
-
-│ ├── prometheus/
-
-│ ├── grafana/
-
-│ └── node-exporter/
-
+│   ├── prometheus/
+│   ├── grafana/
+│   └── node-exporter/
+│
 ├── terraform/
-
+│
 ├── images/
-
+│
 ├── Jenkinsfile
-
+│
 ├── docker-compose.yml
-
+│
 └── README.md
-
-
-
-# 🚀 Features
-
-
-- ✅ FastAPI REST API
-- ✅ React Frontend
-- ✅ Dockerized Application
-- ✅ Docker Compose Support
-- ✅ Jenkins CI/CD Pipeline
-- ✅ GitHub Webhook Integration
-- ✅ Automated Docker Image Build
-- ✅ Docker Hub Image Push
-- ✅ AWS EC2 Deployment
-- ✅ Kubernetes Deployment
-- ✅ Kubernetes Services
-- ✅ Terraform Infrastructure Automation
-- ✅ Prometheus Monitoring
-- ✅ Node Exporter Metrics
-- ✅ Grafana Dashboard
-- ✅ Infrastructure Monitoring
-- ✅ Live Application Deployment
-
-
-
-# 🔄 CI/CD Workflow
-
-
-
+🚀 Features
+✅ FastAPI REST API
+✅ React Frontend
+✅ Dockerized Application
+✅ Docker Compose Support
+✅ Jenkins CI/CD Pipeline
+✅ GitHub Webhook Integration
+✅ Automated Docker Image Build
+✅ Docker Hub Image Push
+✅ AWS EC2 Deployment
+✅ Kubernetes Deployment
+✅ Kubernetes Services
+✅ Terraform Infrastructure Automation
+✅ Prometheus Monitoring
+✅ Node Exporter Metrics
+✅ Grafana Dashboard
+✅ Infrastructure Monitoring
+✅ Live Application Deployment
+🔄 CI/CD Workflow
 Developer
 
-|
-
-▼
+    |
+    ▼
 
 GitHub Repository
 
-|
-
-▼
+    |
+    ▼
 
 GitHub Webhook
 
-|
-
-▼
+    |
+    ▼
 
 Jenkins Pipeline
 
-|
-
-▼
+    |
+    ▼
 
 Checkout Source Code
 
-|
-
-▼
+    |
+    ▼
 
 Docker Build
 
-|
-
-▼
+    |
+    ▼
 
 Push Image
 
-|
-
-▼
+    |
+    ▼
 
 Docker Hub
 
-|
-
-▼
+    |
+    ▼
 
 Kubernetes Deployment
 
-|
-
-▼
+    |
+    ▼
 
 Application Running
 
-|
-
-▼
+    |
+    ▼
 
 Prometheus + Grafana Monitoring
+📸 Project Screenshots
+GitHub Repository
 
+Jenkins Dashboard
 
+Jenkins Pipeline
 
+Docker Images
 
-# 📸 Project Screenshots
+Running Docker Containers
 
+AWS EC2 Instance
 
-## GitHub Repository
+Backend API
 
-![GitHub Repository](images/01-github-repository.png)
+Frontend Dashboard
 
+Prometheus Monitoring
 
-## Jenkins Dashboard
+Grafana Dashboard
 
-![Jenkins Dashboard](images/jenkins-dashboard.png)
-
-
-## Jenkins Pipeline
-
-![Jenkins Pipeline](images/pipeline.png)
-
-
-## Docker Images
-
-![Docker Images](images/docker-images.png)
-
-
-## Running Docker Containers
-
-![Docker Containers](images/docker-ps.png)
-
-
-## AWS EC2 Instance
-
-![AWS EC2](images/ec2.png)
-
-
-## Backend API
-
-![Backend API](images/backend.png)
-
-
-## Frontend Dashboard
-
-![Frontend Dashboard](images/frontend.png)
-
-
-## Prometheus Monitoring
-
-![Prometheus](images/prometheus.png)
-
-
-## Grafana Dashboard
-
-![Grafana](images/grafana.png)
-
-
-
-# 🛠 Installation
-
-
-## Clone Repository
-
-
-```bash
+🛠 Installation
+Clone Repository
 git clone https://github.com/patnamraveendra1-beep/devflow-platform.git
 
 cd devflow-platform
@@ -399,7 +301,6 @@ Prometheus
       ▼
 
 Grafana Dashboard
-
 
 Monitoring Metrics:
 
