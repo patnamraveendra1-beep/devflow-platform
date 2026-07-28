@@ -1,61 +1,104 @@
 # 🚀 DevFlow - Self Service DevOps Platform
 
-> A complete Full Stack DevOps CI/CD Platform built using **FastAPI, React, Docker, Jenkins, GitHub, Docker Hub, and AWS EC2**.
+> A complete Full Stack DevOps CI/CD and Monitoring Platform built using **FastAPI, React, Docker, Jenkins, GitHub, Docker Hub, Kubernetes, Prometheus, Grafana, and AWS EC2**.
 
----
 
 # 📌 Project Overview
 
-DevFlow is a Self-Service DevOps Platform that automates the software deployment lifecycle.
+DevFlow is a Self-Service DevOps Platform that automates the complete software deployment lifecycle.
 
 Whenever a developer pushes code to GitHub, Jenkins automatically:
 
 - Pulls the latest source code
-- Builds a Docker image
-- Pushes the image to Docker Hub
-- Deploys the latest container on AWS EC2
+- Builds Docker images
+- Pushes images to Docker Hub
+- Deploys containers on AWS EC2
+- Runs applications using Kubernetes
+- Monitors infrastructure using Prometheus and Grafana
 
-This project demonstrates a real-world CI/CD workflow used in production DevOps environments.
 
----
+This project demonstrates a real-world production-style DevOps workflow including CI/CD automation, containerization, orchestration, and monitoring.
+
 
 # 🏗 Architecture
 
+
 ```
-                Developer
-                    │
-                    ▼
-             GitHub Repository
-                    │
-           GitHub Webhook Trigger
-                    │
-                    ▼
-             Jenkins Pipeline
-                    │
-          Checkout Source Code
-                    │
-                    ▼
-            Docker Image Build
-                    │
-                    ▼
-              Docker Hub
-                    │
-                    ▼
-          AWS EC2 Deployment
-                    │
-                    ▼
-      FastAPI Backend + React Frontend
+                         Developer
+                             |
+                             |
+                             ▼
+
+                    GitHub Repository
+
+                             |
+                             |
+                    GitHub Webhook
+
+                             |
+                             ▼
+
+                     Jenkins Pipeline
+
+                             |
+                             |
+              -----------------------------
+              |                           |
+              ▼                           ▼
+
+        Docker Build                CI/CD Automation
+
+              |
+              ▼
+
+          Docker Hub
+
+              |
+              ▼
+
+          AWS EC2 Server
+
+              |
+              ▼
+
+        Kubernetes Cluster
+
+              |
+      ----------------------
+      |                    |
+      ▼                    ▼
+
+FastAPI Backend       React Frontend
+
+
+              |
+              ▼
+
+        Monitoring Stack
+
+              |
+      ----------------------
+      |                    |
+      ▼                    ▼
+
+ Prometheus          Grafana
+
+              |
+              ▼
+
+        Node Exporter Metrics
 ```
 
----
 
 # ⚙ Tech Stack
+
 
 ## Backend
 
 - FastAPI
 - Python 3
 - Uvicorn
+
 
 ## Frontend
 
@@ -64,61 +107,88 @@ This project demonstrates a real-world CI/CD workflow used in production DevOps 
 - CSS
 - JavaScript
 
+
 ## DevOps
 
 - Jenkins
 - Docker
 - Docker Compose
 - GitHub Webhooks
+- Kubernetes
+
 
 ## Cloud
 
 - AWS EC2
 - Ubuntu Server
 
+
 ## Container Registry
 
 - Docker Hub
+
+
+## Monitoring
+
+- Prometheus
+- Grafana
+- Node Exporter
+
 
 ## Version Control
 
 - Git
 - GitHub
 
----
 
 # 📂 Project Structure
 
+
 ```
 devflow-platform/
+
 │
+
 ├── backend/
+
 │   ├── Dockerfile
+
 │   ├── requirements.txt
+
 │   └── main.py
-│
+
+
 ├── frontend/
-│
-├── docker/
-│
+
+
 ├── kubernetes/
-│
-├── terraform/
-│
-├── jenkins/
-│
+
+
 ├── monitoring/
-│
-├── screenshots/
-│
+
+│   ├── prometheus/
+
+│   ├── grafana/
+
+│   └── node-exporter/
+
+
+├── images/
+
+
 ├── Jenkinsfile
+
+
 ├── docker-compose.yml
+
+
 └── README.md
+
 ```
 
----
 
 # 🚀 Features
+
 
 - ✅ FastAPI REST API
 - ✅ React Frontend
@@ -126,107 +196,146 @@ devflow-platform/
 - ✅ Docker Compose Support
 - ✅ Jenkins CI/CD Pipeline
 - ✅ GitHub Webhook Integration
+- ✅ Automated Docker Image Build
 - ✅ Docker Hub Image Push
 - ✅ AWS EC2 Deployment
-- ✅ Automatic Docker Deployment
-- ✅ Live Application
+- ✅ Kubernetes Deployment
+- ✅ Kubernetes Services
+- ✅ Prometheus Monitoring
+- ✅ Node Exporter Metrics
+- ✅ Grafana Dashboard
+- ✅ Infrastructure Monitoring
+- ✅ Live Application Deployment
 
----
 
 # 🔄 CI/CD Workflow
 
+
 ```
 Developer
-     │
-     ▼
+
+    |
+
+    ▼
+
 GitHub Repository
-     │
-     ▼
+
+    |
+
+    ▼
+
 GitHub Webhook
-     │
-     ▼
+
+    |
+
+    ▼
+
 Jenkins Pipeline
-     │
-     ▼
-Checkout Source
-     │
-     ▼
+
+    |
+
+    ▼
+
+Checkout Source Code
+
+    |
+
+    ▼
+
 Docker Build
-     │
-     ▼
+
+    |
+
+    ▼
+
 Push Image
-     │
-     ▼
+
+    |
+
+    ▼
+
 Docker Hub
-     │
-     ▼
-Deploy on AWS EC2
-     │
-     ▼
+
+    |
+
+    ▼
+
+Kubernetes Deployment
+
+    |
+
+    ▼
+
 Application Running
+
+    |
+
+    ▼
+
+Prometheus + Grafana Monitoring
+
 ```
 
----
 
 # 📸 Project Screenshots
 
+
 ## GitHub Repository
 
-![GitHub Repository](screenshots/01-github-repository.png)
+![GitHub Repository](images/github.png)
 
----
 
 ## Jenkins Dashboard
 
-![Jenkins Dashboard](screenshots/jenkins-dashboard.png)
+![Jenkins Dashboard](images/jenkins.png)
 
----
 
 ## Jenkins Pipeline
 
-![Pipeline](screenshots/pipeline.png)
+![Jenkins Pipeline](images/pipeline.png)
 
----
 
 ## Docker Images
 
-![Docker Images](screenshots/docker-images.png)
+![Docker Images](images/docker.png)
 
----
 
 ## Running Docker Containers
 
-![Docker Containers](screenshots/docker-ps.png)
+![Docker Containers](images/docker-container.png)
 
----
 
 ## AWS EC2 Instance
 
-![AWS EC2](screenshots/ec2.png)
+![AWS EC2](images/ec2.png)
 
----
 
 ## Backend API
 
-![Backend](screenshots/backend.png)
+![Backend API](images/backend.png)
 
----
 
 ## Frontend Dashboard
 
-![Frontend](screenshots/frontend.png)
+![Frontend Dashboard](images/frontend.png)
 
----
 
-## GitHub Webhook
+## Prometheus Monitoring
 
-![Webhook](screenshots/webhook.png)
+![Prometheus](images/prometheus.png)
 
----
+
+## Grafana Dashboard
+
+![Grafana](images/grafana.png)
+
+
 
 # 🛠 Installation
 
+
 ## Clone Repository
+
 
 ```bash
 git clone https://github.com/patnamraveendra1-beep/devflow-platform.git
@@ -234,9 +343,9 @@ git clone https://github.com/patnamraveendra1-beep/devflow-platform.git
 cd devflow-platform
 ```
 
----
 
-## Backend Setup
+# Backend Setup
+
 
 ```bash
 cd backend
@@ -250,9 +359,9 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
----
 
-## Frontend Setup
+# Frontend Setup
+
 
 ```bash
 cd frontend
@@ -262,40 +371,88 @@ npm install
 npm start
 ```
 
----
 
-## Run using Docker Compose
+# Run using Docker Compose
+
 
 ```bash
 docker-compose up --build
 ```
 
----
+
 
 # ☁ AWS Deployment
 
+
 Deployment Steps:
+
 
 - Launch Ubuntu EC2 Instance
 - Install Docker
 - Install Jenkins
 - Configure GitHub Webhook
-- Build Docker Image
-- Push Image to Docker Hub
-- Deploy Docker Container
+- Build Docker Images
+- Push Images to Docker Hub
+- Deploy Containers
+- Configure Kubernetes
+- Setup Monitoring Stack
 
----
 
 # 🔐 Jenkins Credentials
 
+
 Configured Credentials:
+
 
 - GitHub Credentials
 - Docker Hub Credentials
 
----
+
+
+# 📊 Monitoring Stack
+
+
+DevFlow uses Prometheus and Grafana for monitoring.
+
+
+```
+Application
+
+      |
+
+      ▼
+
+Node Exporter
+
+      |
+
+      ▼
+
+Prometheus
+
+      |
+
+      ▼
+
+Grafana Dashboard
+
+```
+
+
+Monitoring Metrics:
+
+
+- CPU Usage
+- Memory Usage
+- Disk Usage
+- Network Traffic
+- System Health
+- Container Metrics
+
+
 
 # 🌐 Live Demo
+
 
 ## Frontend
 
@@ -303,18 +460,20 @@ Configured Credentials:
 http://13.50.13.212:3000
 ```
 
-## Backend
+
+## Backend API
 
 ```
 http://13.50.13.212:8000
 ```
 
----
+
 
 # 📈 Project Status
 
+
 | Module | Status |
-|---------|--------|
+|---|---|
 | FastAPI Backend | ✅ Completed |
 | React Frontend | ✅ Completed |
 | Docker | ✅ Completed |
@@ -323,53 +482,61 @@ http://13.50.13.212:8000
 | GitHub Webhook | ✅ Completed |
 | Docker Hub | ✅ Completed |
 | AWS EC2 Deployment | ✅ Completed |
-| Kubernetes | 🚧 Planned |
-| Terraform | 🚧 Planned |
-| Prometheus | 🚧 Planned |
-| Grafana | 🚧 Planned |
+| Kubernetes Deployment | ✅ Completed |
+| Kubernetes Services | ✅ Completed |
+| Prometheus Monitoring | ✅ Completed |
+| Node Exporter | ✅ Completed |
+| Grafana Dashboard | ✅ Completed |
 
----
+
 
 # 🔮 Future Enhancements
 
-- Kubernetes Deployment
-- Kubernetes Service
-- Kubernetes Ingress
-- Terraform Infrastructure as Code
-- Prometheus Monitoring
-- Grafana Dashboard
-- Helm Charts
-- SonarQube Code Analysis
-- Trivy Image Security Scan
-- HTTPS using Nginx Reverse Proxy
-- Custom Domain Name
 
----
+- Terraform Infrastructure as Code
+- Helm Charts
+- Kubernetes Ingress
+- HTTPS using Nginx
+- Custom Domain Name
+- SonarQube Code Analysis
+- Trivy Security Scanning
+- Alert Manager Integration
+- Blue Green Deployment
+- Automated Rollback Strategy
+
+
 
 # 👨‍💻 Author
 
+
 ## Raveendra Patnam
 
-**DevOps | AWS | Docker | Jenkins | Kubernetes | Terraform | Python**
+
+**DevOps Engineer | AWS | Docker | Jenkins | Kubernetes | Terraform | Python**
+
 
 GitHub:
 
 https://github.com/patnamraveendra1-beep
 
+
 LinkedIn:
 
 (Add your LinkedIn profile here)
 
----
+
 
 # ⭐ If you like this project
 
+
 Please give this repository a ⭐ on GitHub.
 
----
 
-## 📜 License
+
+# 📜 License
+
 
 This project is developed for learning, portfolio, and DevOps practice purposes.
+
 
 © 2026 Raveendra Patnam
