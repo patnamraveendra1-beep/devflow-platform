@@ -22,8 +22,8 @@ pipeline {
             steps {
                 dir('backend') {
                     sh """
-                    docker build -t ${BACKEND_IMAGE}:${BUILD_NUMBER} .
-                    docker tag ${BACKEND_IMAGE}:${BUILD_NUMBER} ${BACKEND_IMAGE}:latest
+                        docker build -t ${BACKEND_IMAGE}:${BUILD_NUMBER} .
+                        docker tag ${BACKEND_IMAGE}:${BUILD_NUMBER} ${BACKEND_IMAGE}:latest
                     """
                 }
             }
@@ -33,8 +33,8 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh """
-                    docker build -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} .
-                    docker tag ${FRONTEND_IMAGE}:${BUILD_NUMBER} ${FRONTEND_IMAGE}:latest
+                        docker build -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} .
+                        docker tag ${FRONTEND_IMAGE}:${BUILD_NUMBER} ${FRONTEND_IMAGE}:latest
                     """
                 }
             }
@@ -50,7 +50,7 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     '''
                 }
             }
@@ -59,11 +59,11 @@ pipeline {
         stage('Push Images') {
             steps {
                 sh """
-                docker push ${BACKEND_IMAGE}:${BUILD_NUMBER}
-                docker push ${BACKEND_IMAGE}:latest
+                    docker push ${BACKEND_IMAGE}:${BUILD_NUMBER}
+                    docker push ${BACKEND_IMAGE}:latest
 
-                docker push ${FRONTEND_IMAGE}:${BUILD_NUMBER}
-                docker push ${FRONTEND_IMAGE}:latest
+                    docker push ${FRONTEND_IMAGE}:${BUILD_NUMBER}
+                    docker push ${FRONTEND_IMAGE}:latest
                 """
             }
         }
@@ -71,15 +71,15 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh """
-                export KUBECONFIG=${KUBECONFIG}
+                    export KUBECONFIG=${KUBECONFIG}
 
-                kubectl apply -f kubernetes/
+                    kubectl apply -f kubernetes/
 
-                kubectl rollout restart deployment/devflow-backend -n devflow
-                kubectl rollout restart deployment/devflow-frontend -n devflow
+                    kubectl rollout restart deployment/devflow-backend -n devflow
+                    kubectl rollout restart deployment/devflow-frontend -n devflow
 
-                kubectl rollout status deployment/devflow-backend -n devflow
-                kubectl rollout status deployment/devflow-frontend -n devflow
+                    kubectl rollout status deployment/devflow-backend -n devflow
+                    kubectl rollout status deployment/devflow-frontend -n devflow
                 """
             }
         }
@@ -87,19 +87,19 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh """
-                export KUBECONFIG=${KUBECONFIG}
+                    export KUBECONFIG=${KUBECONFIG}
 
-                echo "===== Nodes ====="
-                kubectl get nodes
+                    echo "===== Nodes ====="
+                    kubectl get nodes
 
-                echo "===== Pods ====="
-                kubectl get pods -n devflow
+                    echo "===== Pods ====="
+                    kubectl get pods -n devflow
 
-                echo "===== Services ====="
-                kubectl get svc -n devflow
+                    echo "===== Services ====="
+                    kubectl get svc -n devflow
 
-                echo "===== Deployments ====="
-                kubectl get deployments -n devflow
+                    echo "===== Deployments ====="
+                    kubectl get deployments -n devflow
                 """
             }
         }
@@ -107,7 +107,7 @@ pipeline {
         stage('Cleanup') {
             steps {
                 sh '''
-                docker image prune -af
+                    docker image prune -af
                 '''
             }
         }
@@ -116,11 +116,11 @@ pipeline {
     post {
         always {
             sh '''
-            echo "===== Running Containers ====="
-            docker ps
+                echo "===== Running Containers ====="
+                docker ps
 
-            echo "===== Docker Images ====="
-            docker images | head
+                echo "===== Docker Images ====="
+                docker images | head
             '''
         }
 
@@ -133,7 +133,3 @@ pipeline {
         }
     }
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 69fede7 (Fix kubectl path for Jenkins)
